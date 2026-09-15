@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Golu Dairy Farm — Early Launch Registration</title>
+<style>
+body{font-family:system-ui;margin:0;background:#f5f7f3;color:#17251b}.wrap{max-width:760px;margin:auto;padding:24px}.card{background:white;border-radius:20px;padding:24px;box-shadow:0 8px 30px #0001}.brand{text-align:center}.brand h1{margin:0;font-size:30px}.sub{color:#58705e}label{display:block;font-weight:650;margin-top:16px}input,select,textarea{box-sizing:border-box;width:100%;padding:12px;margin-top:7px;border:1px solid #ccd6ce;border-radius:10px;font-size:15px}button{margin-top:22px;width:100%;padding:13px;border:0;border-radius:11px;background:#173f24;color:white;font-size:16px;font-weight:700}small{color:#68756b}.success{display:none;text-align:center;padding:20px}
+.social{margin:18px 0;padding:16px;border-radius:14px;background:#eef6ef;text-align:center;border:1px solid #d7e7d9}.social h3{margin:0 0 5px}.social p{margin:5px 0 12px;color:#58705e}.social a{display:inline-block;text-decoration:none;background:#173f24;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700}
+</style></head><body><div class="wrap"><div class="card">
+<div class="brand"><h1>🐄 GOLU DAIRY FARM</h1><div><b>Khagaria, Bihar, India</b></div><div class="sub">Founder & Owner: <b>Priyanshu Chaurasia</b><br>🎓 Higher Studies with Dairy Technology</div><hr><h2>🚀 Early Launch Registration</h2><p class="sub">Join us in building a modern, technology-driven & sustainable dairy future.</p></div>
+<div class="social">
+  <h3>📸 Follow Golu Dairy Farm</h3>
+  <p>Stay connected for early-launch updates, dairy technology, farming & innovation.</p>
+  <a href="https://www.instagram.com/goludairyfarm.in/" target="_blank" rel="noopener">Follow @goludairyfarm.in on Instagram →</a>
+</div><form id="form">
+<label>Full Name *<input name="name" required></label>
+<label>Email *<input type="email" name="email" required></label>
+<label>Mobile Number<input name="mobile" inputmode="tel"></label>
+<label>Professional Work / Occupation<input name="work"></label>
+<label>Skills / Expertise<textarea name="skills" rows="3"></textarea></label>
+<label>Current Work / Achievement<textarea name="achievement" rows="3"></textarea></label>
+<label>Full Address<textarea name="address" rows="3"></textarea></label>
+<label>Can you join Golu Dairy Farm? *<select name="join" required><option value="">Select</option><option>Yes</option><option>Maybe</option></select></label>
+<label>Would you like to meet the Founder & Owner, Priyanshu Chaurasia? *
+<select name="meetFounder" required>
+  <option value="">Select</option>
+  <option>Yes, I would like to meet Priyanshu Chaurasia</option>
+</select></label>
+<label>Area of Interest<select name="interest"><option>Dairy Farming</option><option>Dairy Technology</option><option>Technology / AI</option><option>Marketing</option><option>Management</option><option>Agriculture</option><option>Other</option></select></label>
+<button type="submit">Submit Registration</button>
+<small>By submitting, you agree that Golu Dairy Farm may use these details for launch-related communication.</small>
+</form><div id="success" class="success"><h2>✅ Registration Submitted</h2><p>Thank you for registering for the Golu Dairy Farm Early Launch.</p><button onclick="location.reload()">Submit another</button></div>
+</div></div>
+<script>
+const SUPABASE_URL = 'https://gfxqnqafnrzeirsazldh.supabase.co';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
+
+const f = document.getElementById('form');
+
+f.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const d = Object.fromEntries(new FormData(f));
+
+  // Map form fields to the Supabase registrations table.
+  const row = {
+    name: d.name,
+    email: d.email,
+    mobile: d.mobile || null,
+    professional_work: d.work || null,
+    skills: d.skills || null,
+    achievement: d.achievement || null,
+    address: d.address || null,
+    can_join_golu_dairy_farm: d.join,
+    meet_founder: d.meetFounder,
+    area_of_interest: d.interest
+  };
+
+  const button = f.querySelector('button[type="submit"]');
+  button.disabled = true;
+  button.textContent = 'Submitting...';
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/registrations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(row)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP ${response.status}`);
+    }
+
+    f.style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+  } catch (error) {
+    console.error(error);
+    alert('Registration submit nahi hua. Supabase key aur RLS policy check karein.');
+    button.disabled = false;
+    button.textContent = 'Submit Registration';
+  }
+});
+</script></body></html>
