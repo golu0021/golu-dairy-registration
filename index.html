@@ -88,8 +88,13 @@ f.addEventListener('submit', async (e) => {
 
 <script>
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(registration => registration.unregister());
+  });
+
+  caches.keys().then(keys => {
+    keys.forEach(key => caches.delete(key));
+  });
 }
 </script>
 
-</body></html>
