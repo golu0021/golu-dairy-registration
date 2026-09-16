@@ -1,0 +1,11 @@
+{
+  "name": "Golu Dairy Farm",
+  "short_name": "Golu Dairy",
+  "description": "Golu Dairy Farm Early Launch Registration",
+  "start_url": "/golu-dairy-registration/",
+  "scope": "/golu-dairy-registration/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#14532d",
+  "orientation": "portrait"
+}
