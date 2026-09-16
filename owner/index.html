@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Golu Dairy Farm — Owner Dashboard</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui;background:#f3f7f4;color:#17351f}
+header{background:#14532d;color:white;text-align:center;padding:25px 15px}
+header h1{margin:0;font-size:26px}
+header p{margin:6px 0}
+.wrap{max-width:900px;margin:auto;padding:18px}
+.card{background:white;border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 5px 20px #0001}
+input{width:100%;padding:14px;margin:8px 0;border:1px solid #ccd8cf;border-radius:10px;font-size:16px}
+button{width:100%;padding:14px;margin-top:10px;border:0;border-radius:10px;background:#14532d;color:white;font-size:16px;font-weight:700}
+.hidden{display:none}
+.error{color:#b00020;margin-top:10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:#e9f5ed;border-radius:14px;padding:18px;text-align:center}
+.stat strong{display:block;font-size:28px;color:#14532d}
+.registration{border:1px solid #dce7df;border-radius:13px;padding:15px;margin-top:12px;line-height:1.7}
+.registration b{color:#14532d;font-size:18px}
+.refresh{background:#2563eb}
+.logout{background:#991b1b}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🐄 GOLU DAIRY FARM</h1>
+<p>👑 Owner & Founder: Priyanshu Chaurasia</p>
+<p>📍 Khagaria, Bihar</p>
+</header>
+
+<div class="wrap">
+
+<div id="loginCard" class="card">
+<h2>🔐 Owner Login</h2>
+<p>Authorized owner access only.</p>
+
+<input id="email" type="email" placeholder="Owner Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="login()">🔐 Login to Dashboard</button>
+
+<div id="loginError" class="error"></div>
+</div>
+
+
+<div id="dashboard" class="hidden">
+
+<div class="card">
+<h2>📊 Owner Dashboard</h2>
+
+<div class="stats">
+
+<div class="stat">
+<strong id="total">0</strong>
+Total Registrations
+</div>
+
+<div class="stat">
+<strong id="joined">0</strong>
+Interested to Join
+</div>
+
+<div class="stat">
+<strong id="today">0</strong>
+Today's Registrations
+</div>
+
+<div class="stat">
+<strong id="meet">0</strong>
+Founder Meeting
+</div>
+
+</div>
+</div>
+
+
+<div class="card">
+<h2>📋 Registration Records</h2>
+
+<input id="search"
+type="search"
+placeholder="🔍 Search name, email, mobile..."
+oninput="filterRegistrations()">
+
+<button class="refresh" onclick="refreshData()">
+🔄 Refresh Data
+</button>
+
+<div id="registrations">
+<p>Loading registrations...</p>
+</div>
+
+</div>
+
+
+<div class="card">
+<button class="logout" onclick="logout()">🚪 Logout</button>
+</div>
+
+</div>
+</div>
+
+
+<script>
+
+const SUPABASE_URL =
+'https://gfxqnqafnrzeirsazldh.supabase.co';
+
+const SUPABASE_ANON_KEY =
+'sb_publishable_JGjvpEZQftMzq1eK8dR1dQ_uB8iCkAk';
+
+let accessToken = null;
+let allRegistrations = [];
+
+
+async function login(){
+
+const email =
+document.getElementById('email').value.trim();
+
+const password =
+document.getElementById('password').value;
+
+const errorBox =
+document.getElementById('loginError');
+
+errorBox.textContent='';
+
+if(!email || !password){
+errorBox.textContent='Email aur password enter karo.';
+return;
+}
+
+try{
+
+const response=await fetch(
+`${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+{
+method:'POST',
+headers:{
+'Content-Type':'application/json',
+'apikey':SUPABASE_ANON_KEY
+},
+body:JSON.stringify({
+email:email,
+password:password
+})
+});
+
+const data=await response.json();
+
+if(!response.ok){
+throw new Error(
+data.error_description ||
+data.msg ||
+'Login failed'
+);
+}
+
+accessToken=data.access_token;
+
+localStorage.setItem(
+'golu_owner_token',
+accessToken
+);
+
+await checkOwner();
+
+}catch(error){
+
+console.error(error);
+errorBox.textContent=error.message;
+
+}
+}
+
+
+async function checkOwner(){
+
+const userResponse=await fetch(
+`${SUPABASE_URL}/auth/v1/user`,
+{
+headers:{
+'apikey':SUPABASE_ANON_KEY,
+'Authorization':`Bearer ${accessToken}`
+}
+});
+
+if(!userResponse.ok){
+throw new Error('User verification failed.');
+}
+
+const user=await userResponse.json();
+
+const ownerResponse=await fetch(
+`${SUPABASE_URL}/rest/v1/owner_users?select=user_id&user_id=eq.${user.id}`,
+{
+headers:{
+'apikey':SUPABASE_ANON_KEY,
+'Authorization':`Bearer ${accessToken}`
+}
+});
+
+if(!ownerResponse.ok){
+throw new Error('Owner verification failed.');
+}
+
+const owners=await ownerResponse.json();
+
+if(!owners.length){
+
+localStorage.removeItem('golu_owner_token');
+accessToken=null;
+
+throw new Error(
+'This account is not authorized as owner.'
+);
+
+}
+
+document
+.getElementById('loginCard')
+.classList.add('hidden');
+
+document
+.getElementById('dashboard')
+.classList.remove('hidden');
+
+await loadRegistrations();
+
+}
+
+
+async function loadRegistrations(){
+
+const response=await fetch(
+`${SUPABASE_URL}/rest/v1/registrations?select=*&order=created_at.desc`,
+{
+headers:{
+'apikey':SUPABASE_ANON_KEY,
+'Authorization':`Bearer ${accessToken}`
+}
+});
+
+if(!response.ok){
+
+const text=await response.text();
+
+throw new Error(
+text || 'Registrations load nahi ho pa rahe.'
+);
+
+}
+
+allRegistrations=await response.json();
+
+renderRegistrations(allRegistrations);
+
+}
+
+
+function renderRegistrations(list){
+
+document.getElementById('total').textContent=list.length;
+
+document.getElementById('joined').textContent=
+list.filter(x =>
+String(x.can_join_golu_dairy_farm||'')
+.toLowerCase()==='yes'
+).length;
+
+const today=new Date()
+.toISOString().slice(0,10);
+
+document.getElementById('today').textContent=
+list.filter(x =>
+String(x.created_at||'').startsWith(today)
+).length;
+
+document.getElementById('meet').textContent=
+list.filter(x =>
+String(x.meet_founder||'')
+.toLowerCase().includes('yes')
+).length;
+
+
+const box=document.getElementById('registrations');
+
+if(!list.length){
+
+box.innerHTML='<p>📭 No registrations found.</p>';
+return;
+
+}
+
+box.innerHTML=list.map(x=>`
+
+<div class="registration">
+
+<b>👤 ${safe(x.name)}</b><br>
+
+📧 Email: ${safe(x.email)}<br>
+
+📱 Mobile: ${safe(x.mobile||'Not provided')}<br>
+
+💼 Profession:
+${safe(x.professional_work||'Not provided')}<br>
+
+🛠️ Skills:
+${safe(x.skills||'Not provided')}<br>
+
+🎯 Interest:
+${safe(x.area_of_interest||'Not provided')}<br>
+
+🤝 Join:
+${safe(x.can_join_golu_dairy_farm||'Not provided')}<br>
+
+👑 Founder Meeting:
+${safe(x.meet_founder||'Not provided')}<br>
+
+📍 Address:
+${safe(x.address||'Not provided')}<br>
+
+🏆 Achievement:
+${safe(x.achievement||'Not provided')}<br>
+
+🕐 Registered:
+${x.created_at ?
+new Date(x.created_at).toLocaleString() :
+'Not available'}
+
+</div>
+
+`).join('');
+
+}
+
+
+function filterRegistrations(){
+
+const q=
+document.getElementById('search')
+.value.toLowerCase();
+
+const filtered=allRegistrations.filter(x=>
+Object.values(x).some(value=>
+String(value||'')
+.toLowerCase()
+.includes(q)
+));
+
+renderRegistrations(filtered);
+
+}
+
+
+async function refreshData(){
+
+try{
+await loadRegistrations();
+}catch(error){
+alert(error.message);
+}
+
+}
+
+
+function safe(value){
+
+return String(value||'')
+.replaceAll('&','&amp;')
+.replaceAll('<','&lt;')
+.replaceAll('>','&gt;')
+.replaceAll('"','&quot;')
+.replaceAll("'","&#039;");
+
+}
+
+
+function logout(){
+
+localStorage.removeItem('golu_owner_token');
+accessToken=null;
+
+document
+.getElementById('dashboard')
+.classList.add('hidden');
+
+document
+.getElementById('loginCard')
+.classList.remove('hidden');
+
+document.getElementById('password').value='';
+
+}
+
+
+async function restoreSession(){
+
+const token=
+localStorage.getItem('golu_owner_token');
+
+if(!token)return;
+
+accessToken=token;
+
+try{
+
+await checkOwner();
+
+}catch(error){
+
+localStorage.removeItem('golu_owner_token');
+accessToken=null;
+
+}
+
+}
+
+restoreSession();
+
+</script>
+
+</body>
+  </html>
